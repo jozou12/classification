@@ -13,7 +13,7 @@ import math
 class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
   """
   See the project description for the specifications of the Naive Bayes classifier.
-  
+
   Note that the variable 'datum' in this code refers to a counter of features
   (not to a raw samples.Datum).
   """
@@ -60,9 +60,82 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
     self.legalLabels.
     """
 
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-        
+    labels_counter = util.Counter() # counting the number of training samples for each label
+    features_counter = util.Counter() # counting how many times each feature is on for each label
+    total_training_samples = len(trainingData) # getting the total number of training data
+
+    # going through every training sample
+    for index in range(total_training_samples):
+      current_sample = trainingData[index] # getting the current sample/image
+      current_label = trainingLabels[index] # getting the label for the sample/image
+
+      labels_counter[current_label] += 1 # incrementing the total count of training samples with the label
+
+      # going through every feature in the current sample/image
+      for feature in self.features:
+        if current_sample[feature] == 1: # if the feature is on then increase the count for the specific label
+          features_counter[(feature, current_label)] += 1
+
+    self.prior_probability = util.Counter() # creating a counter to store P(y) for each label
+    
+    # calculating the prior probability for each label
+    for label in self.legalLabels:
+      total_label_count = labels_counter[label] # getting the total label count
+      self.prior_probability[label] = total_label_count / total_training_samples # calculating P(y) = total label count / total samples
+
+    # initializing variables to keep track of the best smoothing factor
+    best_accuracy = -1
+    best_smoothing_factor = None
+    best_conditional_probability = None
+
+    # trying out every smoothing factor k starting from the smallest value
+    for k in sorted(kgrid):
+      conditional_probabilities = util.Counter() # storing the conditional probabilities for the current smoothing factor k
+
+      # going through every label
+      for label in self.legalLabels:
+        current_label_count = labels_counter[label] # getting the number of training samples with the current label
+
+        # going through all the features of the current label
+        for feature in self.features:
+          current_feature_count = features_counter[(feature, label)] # getting the total number of times this feature is on for the label
+
+          numerator = current_feature_count + k # adding k to the feature count for Laplace smoothing
+          denominator = current_label_count + 2 * k # adding 2k since the feature has two possible values (0 or 1)
+          current_conditional_probability = numerator / denominator # calculating P(feature = 1 | label)
+
+          conditional_probabilities[(feature, label)] = current_conditional_probability # storing the condiitonal probability for the specific feature and label
+      
+      self.conditionalProb = conditional_probabilities # storing the probablities of the current smoothing factor k
+
+      validation_accuracy = self.calculate_validation_accuracy(validationData, validationLabels) # calculating validation accuracy for the current smoothing factor k
+
+      # checking if the current smoothing factor k gives better accuracy
+      if validation_accuracy > best_accuracy:
+        best_accuracy = validation_accuracy # updating best_accuracy
+        best_smoothing_factor = k # updating best_smoothing_factor
+        best_conditional_probability = conditional_probabilities # updating best_conditional_probability
+
+    self.k = best_smoothing_factor # saving the best smoothing factor k
+    self.conditionalProb = best_conditional_probability # saving the conditional probability associated with the best k
+
+  def calculate_validation_accuracy(self, validation_data, validation_labels):
+    predicted_labels = self.classify(validation_data) # predicting the labels for all images using current model
+    
+    total_correct_predictions = 0 # storing the total correct predictions
+    total_validation_labels = len(validation_labels) # getting the length of the total validation labels
+
+    # going through every validation labels
+    for index in range(total_validation_labels):
+      predicted_label = predicted_labels[index] # getting the predicted label by the classifer
+      actual_label = validation_labels[index] # getting the actual correct label
+
+      if predicted_label == actual_label: # checking if the predicted label equals the actual label
+        total_correct_predictions += 1 # if accurate then increase the total correct predictions
+
+    validation_accuracy = total_correct_predictions / total_validation_labels # calculating the accuracy by the total correct predictions / total images
+    return validation_accuracy # returning validation accuracy
+
   def classify(self, testData):
     """
     Classify the data based on the posterior distribution over labels.
@@ -87,12 +160,29 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
     self.legalLabels.
     """
     logJoint = util.Counter()
-    
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-    
-    return logJoint
-  
+
+    # going through every possible label (0-9)
+    for label in self.legalLabels:
+      prior_probability = self.prior_probability[label] # getting the prior probability of the label P(y)
+      log_probability = math.log(prior_probability) # calculating log P(y)
+
+      # going through every feature in the image
+      for feature in self.features:
+        feature_number = datum[feature] # getting the feature number where 0 = off and 1 = on
+        probability_feature_on = self.conditionalProb[(feature, label)] # getting P(feature = 1 | label) from the trained model
+        
+        # if the pixel is on then P(feature = 1 | label)
+        if feature_number == 1:
+          feature_probability = probability_feature_on
+        else: # else the pixel is off so P(feature = 0 | label)
+          feature_probability = 1 - probability_feature_on
+
+        log_probability += math.log(feature_probability) # adding log P(feature | label) to the total log probability
+      
+      logJoint[label] = log_probability # storing the final log probability for the label
+
+    return logJoint # returning all log probabilities for all possible labels
+
   def findHighOddsFeatures(self, label1, label2):
     """
     Returns the 100 best features for the odds ratio:
@@ -101,12 +191,8 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
     Note: you may find 'self.features' a useful way to loop through all possible features
     """
     featuresOdds = []
-       
+    
     "*** YOUR CODE HERE ***"
     util.raiseNotDefined()
 
     return featuresOdds
-    
-
-    
-      
