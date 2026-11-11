@@ -7,5 +7,4 @@
 # For more info, see http://inst.eecs.berkeley.edu/~cs188/sp09/pacman.html
 
 def q3():
-  "*** YOUR CODE HERE ***"
-
+  return 'a' # returning 'a' based on the output matching 

@@ -191,8 +191,17 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
     Note: you may find 'self.features' a useful way to loop through all possible features
     """
     featuresOdds = []
-    
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    all_odds_ratios = util.Counter() # storing all the odds ratios for all features 
 
-    return featuresOdds
+    # going through all possible features 
+    for feature in self.features: 
+      probability_label1_feature_on = self.conditionalProb[(feature, label1)] # getting the probability that the current feature is on for label1
+      probability_label2_feature_on = self.conditionalProb[(feature, label2)] # getting the probability that the current feature is on for label2
+
+      odds_ratio = probability_label1_feature_on / probability_label2_feature_on # calculating the odds ratio for the current feature
+      all_odds_ratios[feature] = odds_ratio # storing the odds ratio of the feature into all_odds_ratios
+
+    sorted_features_odds = sorted(all_odds_ratios, key=all_odds_ratios.get, reverse=True) # sorting the features by their odds ratio in descending order 
+    featuresOdds = sorted_features_odds[:100] # getting the top 100 best features (first 100 elements)
+
+    return featuresOdds # returning the 100 best features 
