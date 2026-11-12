@@ -106,7 +106,7 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
 
           conditional_probabilities[(feature, label)] = current_conditional_probability # storing the condiitonal probability for the specific feature and label
       
-      self.conditionalProb = conditional_probabilities # storing the probablities of the current smoothing factor k
+      self.conditional_probabilities = conditional_probabilities # storing the probablities of the current smoothing factor k
 
       validation_accuracy = self.calculate_validation_accuracy(validationData, validationLabels) # calculating validation accuracy for the current smoothing factor k
 
@@ -117,7 +117,7 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
         best_conditional_probability = conditional_probabilities # updating best_conditional_probability
 
     self.k = best_smoothing_factor # saving the best smoothing factor k
-    self.conditionalProb = best_conditional_probability # saving the conditional probability associated with the best k
+    self.conditional_probabilities = best_conditional_probability # saving the conditional probability associated with the best k
 
   def calculate_validation_accuracy(self, validation_data, validation_labels):
     predicted_labels = self.classify(validation_data) # predicting the labels for all images using current model
@@ -169,7 +169,7 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
       # going through every feature in the image
       for feature in self.features:
         feature_number = datum[feature] # getting the feature number where 0 = off and 1 = on
-        probability_feature_on = self.conditionalProb[(feature, label)] # getting P(feature = 1 | label) from the trained model
+        probability_feature_on = self.conditional_probabilities[(feature, label)] # getting P(feature = 1 | label) from the trained model
         
         # if the pixel is on then P(feature = 1 | label)
         if feature_number == 1:
@@ -195,8 +195,8 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
 
     # going through all possible features 
     for feature in self.features: 
-      probability_label1_feature_on = self.conditionalProb[(feature, label1)] # getting the probability that the current feature is on for label1
-      probability_label2_feature_on = self.conditionalProb[(feature, label2)] # getting the probability that the current feature is on for label2
+      probability_label1_feature_on = self.conditional_probabilities[(feature, label1)] # getting the probability that the current feature is on for label1
+      probability_label2_feature_on = self.conditional_probabilities[(feature, label2)] # getting the probability that the current feature is on for label2
 
       odds_ratio = probability_label1_feature_on / probability_label2_feature_on # calculating the odds ratio for the current feature
       all_odds_ratios[feature] = odds_ratio # storing the odds ratio of the feature into all_odds_ratios

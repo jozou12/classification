@@ -13,11 +13,11 @@ class Node:
     A leaf node has no feature and no children, and its label is the prediction.
     """
     def __init__(self, label, feature = None, children = None):
-        self.feature = feature # storing the feature (pixel) this node splits on, None means the node is a leaf
+        self.feature = feature # storing the feature (pixel) this node splits on (None means node is a leaf)
         self.children = children # storing the child nodes as a dict {0: child node, 1: child node}
-        self.label = label  # storing the prediction for a leaf, or the majority label for an internal node (used when pruning)
+        self.label = label  # storing the prediction for a leaf or the majority label for an internal node (used when pruning)
         if self.children is None:
-            self.children = {}  # creating a new empty dict for each node instead of using {} as the default argument, since a mutable default argument would be shared by every node
+            self.children = {}  # creating a new empty dict for each node instead of using {} as the default argument since a mutable default argument would be shared by every node
 
     def isLeaf(self):
         return self.feature is None # a node is a leaf when it has no feature to split on
@@ -33,8 +33,6 @@ class ID3Classifier:
         self.tree = None
         self.pruning = False
 
-        # You may initialize additional parameters here.
-
     def setPruning(self, pruning):
         self.pruning = pruning
 
@@ -48,27 +46,24 @@ class ID3Classifier:
         self.trainingLabels = trainingLabels # storing the training labels
         self.validationData = validationData # storing the validation data for pruning
         self.validationLabels = validationLabels # storing the validation labels for pruning
+
         featuresList = list(trainingData[0].keys()) # getting all features (pixels) from the first sample, since every sample has the same features
         allIndices = list(range(len(trainingData))) # getting the indices of all training samples [0, 1, ..., n-1]
-        self.tree = self.build(allIndices, featuresList, None) # building the full tree, the root always has samples so its parent label is never used
-        # print("nodes before pruning:", self.countNodes(self.tree)) # temp
+        self.tree = self.build(allIndices, featuresList, None) # building the full tree (the root always has samples so its parent label is never used)
+        # print("nodes before pruning:", self.countNodes(self.tree))
+
         if self.pruning:
             validationIndices = list(range(len(self.validationData))) # getting the indices of all validation samples
             self.prune(self.tree, validationIndices) # pruning starts from the root with every validation sample
-        #     print("nodes after pruning:", self.countNodes(self.tree)) # temp
+            # print("nodes after pruning:", self.countNodes(self.tree)) 
 
     def classify(self, testData):
         """
         Return the predicted labels for the test data.
         """
-        return [self.predict(datum) for datum in testData]  # predict each datum independently; the list comprehension keeps the output in the same order as testData, which the evaluator relies on
+        return [self.predict(datum) for datum in testData]  # predict each datum independently; the list comprehension keeps the output in the same order as testData (evaluator relies on)
 
-
-
-    # You may add additional helper methods here.
-
-    #   Return the entropy (in bits) of a set of examples:
-    #   H(S) = - sum_c p_c * log2(p_c)
+    # Return the entropy (in bits) of a set of examples: H(S) = - sum_c p_c * log2(p_c)
     def entropy(self, labelCounts, total):
         """
         Returns the entropy of a set of samples: H(S) = - sum_c p_c * log2(p_c)
@@ -76,18 +71,18 @@ class ID3Classifier:
         The entropy is 0 when every sample has the same label, and highest when all labels are equally common.
         """    
         if total == 0:
-            return 0 # an empty set has no uncertainty, returning 0 also avoids dividing by 0
+            return 0 # an empty set has no uncertainty (returning 0 to avoid dividing by 0)
         else:
             result = 0.0 # storing the entropy
             for label, count in labelCounts.items():
-                # skipping labels with count 0, since 0 * log(0) is taken as 0 and math.log(0) gives an error
-                if count == 0:
+                if count == 0: # skipping labels with count 0 since 0 * log(0) = 0 and math.log(0) gives an error
                     continue
+        
                 p = count / total # calculating the proportion of samples with this label
-                result = result - p * math.log(p, 2) # subtracting p * log2(p) because of the minus sign in the formula
+                result = result - p * math.log(p, 2) # subtracting p * log2(p) due to the minus sign in the formula
             return result
 
-    # Return the most common label in the list labels.
+    # Return the most common label in the list labels 
     def majority(self, labels):
         """
         Returns the most common label in the list labels (labels must not be empty).
@@ -95,7 +90,7 @@ class ID3Classifier:
         """
         count = util.Counter() # counting how many times each label appears
         for label in labels:
-            count[label] += 1 # incrementing the count of the label, Counter starts missing keys at 0
+            count[label] += 1 # incrementing the count of the label (defaults missing keys to 0)
         return count.argMax() # returning the label with the highest count
 
     def bestFeature(self, indices, features):
@@ -105,26 +100,27 @@ class ID3Classifier:
         indices are the training samples at the current node (must not be empty),
         and features are the candidate features not used yet on this path.
         """
-       # step1: counting the labels of all samples at the current node to get H(S)
+       # 1: counting the labels of all samples at the current node to get H(S)
         labelCounts = util.Counter() # counting how many samples have each label at this node
         for i in indices:
             labelCounts[self.trainingLabels[i]] += 1
         n = len(indices) # getting the total number of samples at this node
         node_entropy = self.entropy(labelCounts, n) # calculating the entropy of the node before splitting
 
-        # step2: scanning the samples only once to count the labels where each feature is on (= 1)
-        onCounts = {} # storing a Counter of labels for every feature, onCounts[feature][label]
+        # 2: scanning the samples only once to count the labels where each feature is on (1)
+        onCounts = {} # storing a counter of labels for every feature (onCounts[feature][label])
         for f in features:
-            onCounts[f] = util.Counter()  # creating an empty Counter for each feature, since a plain dict has no default value
+            onCounts[f] = util.Counter() # creating an empty counter for each feature since a plain dict has no default value
 
         for i in indices: # going through every sample at this node
             for f in features: # going through every candidate feature
                 if self.trainingData[i][f] == 1: # if the feature is on then increase the count for the label of sample i
                     onCounts[f][self.trainingLabels[i]] += 1
 
-        # step3: calculating the information gain of every feature and keeping the best one
-        bestGain = -1 # gain is always >= 0, so starting at -1 makes sure some feature is chosen
+        # 3: calculating the information gain of every feature and keeping the best one
+        bestGain = -1 # gain is always >= 0 so starting at -1 makes sure some feature is chosen
         bestFeature = None
+
         for f in features:
             onLabelCounts = onCounts[f]  # getting the label counts of the samples where the feature is on
             n1 = onLabelCounts.totalCount() # getting the number of samples where the feature is on
@@ -134,9 +130,12 @@ class ID3Classifier:
             offEntropy = self.entropy(offLabelCounts, n0) # calculating the entropy of the "off" subset
             weightedEntropy = (n1/n) *  onEntropy + (n0/n) * offEntropy # calculating the expected entropy after splitting, weighted by subset size
             gain = node_entropy - weightedEntropy # calculating how much the split reduces the entropy
-            if gain > bestGain:  # checking if the current feature gives a better gain, strict ">" keeps the first feature on ties
+
+            # checking if the current feature gives a better gain (strict ">" keeps the first feature on ties)
+            if gain > bestGain:  
                 bestGain = gain
                 bestFeature = f
+
         return bestFeature, bestGain
 
     def build(self, indices, features, parentLabel):
@@ -145,17 +144,17 @@ class ID3Classifier:
         features are the features not used yet on this path,
         and parentLabel is the majority label of the parent node (used when no samples reach this node).
         """
-         # base case 1: no samples reach this branch, so use the majority label of the parent
+         # base case 1: no samples reach this branch so use the majority label of the parent
         if len(indices) == 0:
             return Node(parentLabel)
         labels = [self.trainingLabels[i] for i in indices] # getting the labels of all samples at this node
         majorityLabel = self.majority(labels) # getting the most common label at this node
  
-        # base case 2: all samples have the same label, so the node is pure
+        # base case 2: all samples have the same label so the node is pure
         if len(set(labels)) == 1:
             return Node(majorityLabel)
  
-        # base case 3: no features left to split on, so predict the majority label
+        # base case 3: no features left to split on so predict the majority label
         if len(features) == 0:
             return Node(majorityLabel)
  
@@ -177,7 +176,7 @@ class ID3Classifier:
         """
         Returns the predicted label for one sample by walking the tree from the root down to a leaf.
         """
-        current = self.tree  # starting from the root of the tree
+        current = self.tree # starting from the root of the tree
         while not current.isLeaf():
             current = current.children[datum[current.feature]] # going to the child that matches the sample's value (0 or 1) of the node's feature
         return current.label # returning the label of the leaf as the prediction
@@ -190,7 +189,7 @@ class ID3Classifier:
         if that does not increase the validation errors.
         """
         leafErrors = len([i for i in indices if self.validationLabels[i] != node.label]) # counting the errors if this node were a leaf
-        if node.isLeaf(): # a leaf cannot be pruned further, so return its errors
+        if node.isLeaf(): # a leaf cannot be pruned further so return its errors
             return leafErrors
 
         offIndices = [i for i in indices if self.validationData[i][node.feature] == 0] # getting the validation samples that go to child 0
@@ -209,7 +208,8 @@ class ID3Classifier:
         """
         Returns the number of nodes in the subtree rooted at node (used to compare tree size with and without pruning).
         """
-        if node.isLeaf():  # a leaf counts as one node
+        if node.isLeaf(): # a leaf counts as one node
             return 1
         else:
-            return 1 + self.countNodes(node.children[0]) + self.countNodes(node.children[1])  # counting this node plus the nodes of both subtrees
+            return 1 + self.countNodes(node.children[0]) + self.countNodes(node.children[1]) # counting this node plus the nodes of both subtrees
+            

@@ -74,27 +74,28 @@ def enhancedFeatureExtractorDigit(datum):
   visited = set() # storing the white pixels that have already been flooded
   regions = 0 # counting the number of connected white regions
 
-  for x in range(DIGIT_DATUM_WIDTH):  # going through every pixel in the image to look for the start of a new white region
+  for x in range(DIGIT_DATUM_WIDTH): # going through every pixel in the image to look for the start of a new white region
     for y in range(DIGIT_DATUM_HEIGHT):
       if datum.getPixel(x,y) != 0 or (x, y) in visited: # skipping stroke pixels (gray or black) and white pixels that are already flooded
         continue
 
       regions += 1 # an unvisited white pixel means we found a new region
-      queue = [(x, y)] # storing the pixels waiting to be expanded, starting from the current pixel
+      queue = [(x, y)] # storing the pixels waiting to be expanded starting from the current pixel
       visited.add((x,y)) # marking the starting pixel as flooded
       while len(queue) > 0: # flooding the whole region until there is no pixel left to expand
-        cx,cy = queue.pop()  # getting the next pixel to expand
+        cx,cy = queue.pop() # getting the next pixel to expand
         for nx, ny in [(cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)]: # going through the 4 neighbors (right, left, down, up) of the current pixel
           if nx < 0 or nx >= DIGIT_DATUM_WIDTH or ny < 0 or ny >= DIGIT_DATUM_HEIGHT: # skipping neighbors outside of the image
             continue
+
           if datum.getPixel(nx, ny) == 0 and (nx, ny) not in visited: # if the neighbor is white and not flooded yet then flood it and expand it later
-            visited.add((nx, ny))  # marking the neighbor as flooded when adding it, so it is never added twice
+            visited.add((nx, ny)) # marking the neighbor as flooded when adding it, so it is never added twice
             queue.append((nx, ny)) # adding the neighbor to the queue
- 
 
   features["regions_1"] = 0
   features["regions_2"] = 0
   features["regions_3"] = 0
+
   if regions == 1:
     features["regions_1"] = 1 # 1 if the image has exactly 1 white region
   if regions == 2:
@@ -103,7 +104,6 @@ def enhancedFeatureExtractorDigit(datum):
       features["regions_3"] = 1 # 1 if the image has 3 or more white regions
   
   return features # returning the basic features plus the region features
-
 
 def contestFeatureExtractorDigit(datum):
   """
